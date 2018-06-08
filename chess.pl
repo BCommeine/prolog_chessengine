@@ -6,17 +6,25 @@ utility(_, _).
 min_to_move(_).
 max_to_move(_).
 
-% Positie van één stuk uit de bordvoorstelling halen
-positie_stuk(Stuk, Spel, Rij, Kolom) :- positie_rij(Stuk, Spel, Rij), nth0(Rij, Spel, SpelRij), positie_kolom_string(Stuk, SpelRij, Kolom).
+% Utility functions to find data quickly
+get_board([Board|_], Board).
+get_Turn([_, Turn| _], Turn).
+get_Castling([_, _, Castling|_], Castling).
+get_Passant([_, _, _, Passant], Passant).
+get_Half([_, _, _, _, Half], Half).
+get_Full([_, _, _, _, _, Full], Full).
 
-positie_rij(Stuk, [H|_], 0) :- sub_string(H, _, _, _, Stuk).
-positie_rij(Stuk, [_|T], N) :- positie_rij(Stuk, T, N1), !, N is N1+1.
+get_row(Board, Number, Row) :- arg(Number, Board, Row).
+get_piece(Board, Row, Column, Piece) :- get_row(Board, Row, R), nth0(Column, R, Piece).
 
-positie_kolom_string(Stuk, String, N) :- string_chars(String, Lijst), positie_kolom(Stuk, Lijst, N).
-
-positie_kolom(Stuk, [Stuk|_], 0).
-positie_kolom(Stuk, [H|T], N) :- positie_kolom(Stuk, T, N1), char_type(H, digit), atom_number(H, Number), N is N1 + Number.
-positie_kolom(Stuk, [H|T], N) :- positie_kolom(Stuk, T, N1), char_type(H, alpha), N is N1 + 1.
-
-combine(X, Y, (X, Y)).
-all_positions_piece(Stuk, Spel, Results) :- combine(X, Y, Result), findall(Result, positie_stuk(Stuk, Spel, X, Y), Results).
+% Vind de positie van een bepaald stuk
+piece_row([Piece |_], 0, Piece).
+piece_row([_ | Tail], N, Piece) :- piece_row(Tail, N1, Piece), N is N1 + 1.
+find_piece(rows( Column, _, _, _, _, _, _, _), 0, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , Column, _, _, _, _, _, _), 1, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, Column, _, _, _, _, _), 2, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, _, Column, _, _, _, _), 3, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, _, _, Column, _, _, _), 4, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, _, _, _, Column, _, _), 5, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, _, _, _, _, Column, _), 6, Row, Piece) :- piece_row(Column, Row, Piece).
+find_piece(rows(_ , _, _, _, _, _, _, Column), 7, Row, Piece) :- piece_row(Column, Row, Piece).
