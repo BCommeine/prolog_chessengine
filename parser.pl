@@ -1,9 +1,9 @@
 :-module(parser, [parse/2, dirk/1]).
 
-parse(Fen, Voorstelling) :- ground(Fen), string_chars(Fen, Chars), position(Voorstelling, Chars, []).
-parse(Fen, Voorstelling) :- position(Voorstelling, Chars, []), string_chars(Fen, Chars).
+parse(Fen, Voorstelling) :- ground(Fen), string_chars(Fen, Chars), position(Voorstelling, Chars, []), !.
+parse(Fen, Voorstelling) :- position(Voorstelling, Chars, []), string_chars(Fen, Chars), !.
 
-initial_fen_string("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq e3 0 1").
+initial_fen_string("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").
 dirk(X) :- initial_fen_string(F), parse(F, X).
         
 position([Board, Turn, Castling, Passant, Half, Full]) -->
@@ -39,7 +39,7 @@ row([empty, empty, empty, empty| T]) --> ['4'], row(T).
 row([empty, empty, empty| T]) --> ['3'], row(T).
 row([empty, empty| T]) --> ['2'], row(T).
 row([empty| T]) --> ['1'], row(T).
-row([B|T]) --> piece(B), row(T).
+row([B|T]) --> piece(B), !, row(T).
 
 piece(piece(king, black)) --> [k].
 piece(piece(queen, black)) --> [q].
@@ -55,8 +55,8 @@ piece(piece(bishop, white)) --> ['B'].
 piece(piece(knight, white)) --> ['N'].
 piece(piece(pawn, white)) --> ['P'].
 
-turn(w) --> [w].
-turn(b) --> [b].
+turn(white) --> [w].
+turn(black) --> [b].
 
 castling_rights(-) --> [-], !.
 castling_rights([]) --> [].
@@ -70,7 +70,7 @@ castling_rights_char(q) --> [q].
 passant_square([-]) --> [-].
 passant_square([C, D]) --> [C, D], {sub_string("abcdefgh", _, 1, _, C), is_digit(D)}.
 
-space --> [' '].
+space --> [' '], !.
 
 digits([D|T]) -->
     digit(D), !,
