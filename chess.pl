@@ -21,6 +21,9 @@ get_piece(Board, Row, Column, Piece) :- get_row(Board, Row, R), nth0(C, R, Piece
 is_empty(Board, Column, Row) :- get_piece(Board, Row, Column, empty).
 
 % Find position of a certain piece
+valid(X) :- X > 0, X < 9.
+other_color(white, black).
+other_color(black, white). 
 piece_row([Piece |_], 1, Piece).
 piece_row([_ | Tail], N, Piece) :- piece_row(Tail, N1, Piece), N is N1 + 1.
 find_piece(rows( Row, _, _, _, _, _, _, _), Column, 1, Piece) :- piece_row(Row, Column, Piece).
@@ -60,36 +63,42 @@ put_piece(N, Board, Nextboard, Col, Row, Piece):-
 put_piece(0, _, _, _, _, _).
 
 % Move knight
-move_knight(Position, Nextboard) :- get_board(Position, Board),
-                                    get_turn(Position, Turn),
-                                    find_piece(Board, Column, Row, piece(knight, Turn)),
-                                    write('Found'),
-                                    put_piece(Board, Next, Column, Row, empty),
-                                    dif(Column, C, 2),
-                                    dif(Row, R, 1),
-                                    is_empty(Board, C, R),
-                                    put_piece(Next, Nextboard, C, R, piece(knight, Turn)).
-
-move_knight(Position, Nextboard) :- get_board(Position, Board),
-                                    get_turn(Position, Turn),
-                                    find_piece(Board, Column, Row, piece(knight, Turn)),
-                                    put_piece(Board, Next, Column, Row, empty),
-                                    dif(Column, C, 1),
-                                    dif(Row, R, 2),
-                                    is_empty(Board, C, R),
-                                    write(C), 
-                                    write(R),
-                                    put_piece(Next, Nextboard, C, R, piece(knight, Turn)).
-
-
 patrick(Y) :- dirk(X), move_knight(X, Y).
+dif(A, B, D) :- B is A + D,valid(B).
+dif(A, B, D) :- B is A - D,valid(B).
+knight_jump(Column, Row, C, R) :- dif(Column, C, 2), dif(Row, R, 1), valid(C), valid(R).
+knight_jump(Column, Row, C, R) :- dif(Column, C, 1), dif(Row, R, 2), valid(C), valid(R).
+move_knight(Position, Nextboard) :- get_board(Position, Board),
+                                    get_turn(Position, Turn),
+                                    find_piece(Board, Column, Row, piece(knight, Turn)),
+                                    knight_jump(Column, Row, C, R),
+                                    is_empty(Board, C, R),
+                                    put_piece(Board, Next, Column, Row, empty),
+                                    put_piece(Next, Nextboard, C, R, piece(knight, Turn)).
+
+% Move Pawn
+xavier(Y) :- dirk(X), move_pawn(X, Y).
+
+pawn_jump(Row, R, white) :- R is Row - 1, valid(R).
+pawn_jump(Row, R, black) :- R is Row + 1, valid(R).
+pawn_jump(7, 5, white).
+pawn_jump(2, 4, black).
+move_pawn(Position, Nextboard) :-   get_board(Position, Board),
+                                    get_turn(Position, Turn),
+                                    find_piece(Board, Column, Row, piece(pawn, Turn)),
+                                    pawn_jump(Row, R, Turn),
+                                    is_empty(Board, Column, R),
+                                    put_piece(Board, Next, Column, Row, empty),
+                                    put_piece(Next, Nextboard, Column, R, piece(pawn, Turn)).
   
-dif(A, B, D) :-
-    B is A + D,
-    valid(B).
+move_pawn(Position, Nextboard) :-   get_board(Position, Board),
+                                    get_turn(Position, Turn),
+                                    other_color(Turn, Other),
+                                    find_piece(Board, Column, Row, piece(pawn, Turn)),
+                                    pawn_jump(Row, R, Turn),
+                                    dif(Column, C, 1),
+                                    find_piece(Board, C, R, piece(_, Other)),
+                                    put_piece(Board, Next, Column, Row, empty),
+                                    put_piece(Next, Nextboard, C, R, piece(pawn, Turn)).
 
-dif(A, B, D) :-
-    B is A - D,
-    valid(B).
-
-valid(X) :- X > 0, X < 9. 
+% Move Rook

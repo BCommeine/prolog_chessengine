@@ -3,7 +3,7 @@
 parse(Fen, Voorstelling) :- ground(Fen), string_chars(Fen, Chars), position(Voorstelling, Chars, []), !.
 parse(Fen, Voorstelling) :- position(Voorstelling, Chars, []), string_chars(Fen, Chars), !.
 
-initial_fen_string("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").
+initial_fen_string("rnbqkbnr/pppppppp/8/8/8/3p4/PPPPPPPP/RNBQKBNR w KQkq - 0 1").
 dirk(X) :- initial_fen_string(F), parse(F, X).
         
 position([Board, Turn, Castling, Passant, Half, Full]) -->
