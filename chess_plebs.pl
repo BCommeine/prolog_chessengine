@@ -62,6 +62,24 @@ put_piece(N, Board, Nextboard, Col, Row, Piece):-
 
 put_piece(0, _, _, _, _, _).
 
+% Check if piece is movable to a position
+movable_to_this(R1, Column, R2, Column, Board, Turn) :- get_piece(Board, R2, Column, piece(_, Other)), other_color(Turn, Other), R2 > R1, R3 is R2 - 1, empty_spaces_between(R1, Column, R3, Column, Board).
+movable_to_this(R1, Column, R2, Column, Board, Turn) :- get_piece(Board, R2, Column, piece(_, Other)), other_color(Turn, Other), R2 < R1, R3 is R2 + 1, empty_spaces_between(R1, Column, R3, Column, Board).
+movable_to_this(Row, C1, Row, C2, Board, Turn) :- get_piece(Board, Row, C2, piece(_ , Other)), other_color(Turn, Other), C2 > C1, C3 is C2 - 1, empty_spaces_between(Row, C1, Row, C3, Board).
+movable_to_this(Row, C1, Row, C2, Board, Turn) :- get_piece(Board, Row, C2, piece(_ , Other)), other_color(Turn, Other), C2 < C1, C3 is C2 + 1, empty_spaces_between(Row, C1, Row, C3, Board).
+
+movable_to_this(R1, Column, R2, Column, Board, _) :- empty_spaces_between(R1, Column, R2, Column, Board).
+movable_to_this(Row, C1, Row, C2, Board, _) :- empty_spaces_between(Row, C1, Row, C2, Board).
+
+% Check if spaces are empty between
+empty_spaces_between(R1, Column, R2, Column, Board) :- R1 < R2, !, Next is R1 + 1, valid(Next), is_empty(Board, Column, Next), empty_spaces_between(Next, Column, R2, Column, Board).
+empty_spaces_between(R1, Column, R2, Column, Board) :- R1 > R2, !, Next is R1 - 1, valid(Next), is_empty(Board, Column, Next), empty_spaces_between(Next, Column, R2, Column, Board).
+
+empty_spaces_between(Row, C1, Row, C2, Board) :- C1 > C2, !, Next is C1 - 1, valid(Next), is_empty(Board, Next, Row), empty_spaces_between(Row, Next, Row, C2, Board).
+empty_spaces_between(Row, C1, Row, C2, Board) :- C1 < C2, !, Next is C1 + 1, valid(Next), is_empty(Board, Next, Row), empty_spaces_between(Row, Next, Row, C2, Board).
+
+empty_spaces_between(Row, Column, Row, Column, Board) :- !, is_empty(Board, Column, Row).
+
 % Move knight
 patrick(Y) :- dirk(X), move_knight(X, Y).
 dif(A, B, D) :- B is A + D,valid(B).
@@ -102,69 +120,45 @@ move_pawn(Position, Nextboard) :-   get_board(Position, Board),
                                     put_piece(Next, Nextboard, C, R, piece(pawn, Turn)).
 
 % Move Rook
-kevin(Y) :- dirk(X), move_rook(X, Y).
-valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, r, Turn).
-valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row - 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, l, Turn).
-valid_rook_move(Board, Row, Column, Row, C2,Turn) :- C is Column + 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C2, u, Turn).
-valid_rook_move(Board, Row, Column, Row, C2,Turn) :- C is Column - 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C2, d, Turn).
+wendy(Y):- dirk(X), move_rook(X, Y).
 
-valid_rook_move_h(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
-valid_rook_move_h(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
-valid_rook_move_h(Board, Row, Column, R1, Column, r, Turn) :- is_empty(Board, Column, Row), R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R1, Column, r, Turn).
-valid_rook_move_h(Board, Row, Column, R1, Column, l, Turn) :- is_empty(Board, Column, Row), R is Row - 1, valid(R), valid_rook_move_h(Board, R, Column, R1, Column, l, Turn).
-
-valid_rook_move_v(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
-valid_rook_move_v(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
-valid_rook_move_v(Board, Row, Column, Row, C1, u, Turn) :- is_empty(Board, Column, Row), C is Column + 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C1, u, Turn).
-valid_rook_move_v(Board, Row, Column, Row, C1, d, Turn) :- is_empty(Board, Column, Row), C is Column - 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C1, d, Turn).
- 
 move_rook(Position, Nextboard) :-   get_board(Position, Board),
                                     get_turn(Position, Turn),
                                     find_piece(Board, Column, Row, piece(rook, Turn)),
-                                    valid_rook_move(Board, Row, Column, R, C, Turn),
+                                    between(0, 8, C),
+                                    movable_to_this(Row, Column, Row, C, Board, Turn),
+                                    valid(C),
                                     put_piece(Board, Next, Column, Row, empty),
-                                    put_piece(Next, Nextboard, C, R, piece(rook, Turn)).
+                                    put_piece(Next, Nextboard, C, Row, piece(rook, Turn)).
+
+move_rook(Position, Nextboard) :-   get_board(Position, Board),
+                                    get_turn(Position, Turn),
+                                    find_piece(Board, Column, Row, piece(rook, Turn)),
+                                    between(0, 8, R),
+                                    movable_to_this(Row, Column, R, Column, Board, Turn),
+                                    valid(R),
+                                    put_piece(Board, Next, Column, Row, empty),
+                                    put_piece(Next, Nextboard, Column, R, piece(rook, Turn)).
 
 % Move Bishop
-kenny(Y) :- dirk(X), move_bishop(X, Y).
-valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row + 1, C1 is Column + 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, r, Turn).
-valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row + 1, C1 is Column - 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, l, Turn).
-valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row - 1, C1 is Column + 1, valid(C1), valid(R1), valid_bishop_move_d(Board, R1, C1, R, C, r, Turn).
-valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row - 1, C1 is Column - 1, valid(C1), valid(R1), valid_bishop_move_d(Board, R1, C1, R, C, l, Turn).
+kevin(Y):- dirk(X), move_rook(X, Y).
+movable_bishop(Row, Column, N, Board, Turn) :- dif(Row, R, N), dif(Column, C, N), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other)
 
-valid_bishop_move_u(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
-valid_bishop_move_u(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
-valid_bishop_move_u(Board, Row, Column, R, C, r, Turn) :- is_empty(Board, Column, Row), R1 is Row + 1, C1 is Column + 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, r, Turn).
-valid_bishop_move_u(Board, Row, Column, R, C, l, Turn) :- is_empty(Board, Column, Row), R1 is Row + 1, C1 is Column - 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, l, Turn).
-
-valid_bishop_move_d(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
-valid_bishop_move_d(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
-valid_bishop_move_d(Board, Row, Column, R, C, r, Turn) :- is_empty(Board, Column, Row), R1 is Row - 1, C1 is Column + 1, valid(R1), valid(C1), valid_bishop_move_d(Board, R1, C1, R, C, r, Turn).
-valid_bishop_move_d(Board, Row, Column, R, C, l, Turn) :- is_empty(Board, Column, Row), R1 is Row - 1, C1 is Column - 1, valid(R1), valid(C1), valid_bishop_move_d(Board, R1, C1, R, C, l, Turn).
-                
 move_bishop(Position, Nextboard) :- get_board(Position, Board),
                                     get_turn(Position, Turn),
                                     find_piece(Board, Column, Row, piece(bishop, Turn)),
-                                    valid_bishop_move(Board, Row, Column, R, C, Turn),
+                                    between(0, 8, N),
+                                    movable_bishop(Row, Column, N, Board, Turn),
+                                    valid(C),
                                     put_piece(Board, Next, Column, Row, empty),
                                     put_piece(Next, Nextboard, C, R, piece(bishop, Turn)).
 
-% Move Queen
-chantal(Y) :- dirk(X), move_queen(X, Y).
-move_queen(Position, Nextboard) :-  get_board(Position, Board),
-                                    get_turn(Position, Turn),
-                                    find_piece(Board, Column, Row, piece(queen, Turn)),
-                                    valid_rook_move(Board, Row, Column, R, C, Turn),
-                                    put_piece(Board, Next, Column, Row, empty),
-                                    put_piece(Next, Nextboard, C, R, piece(queen, Turn)).
 
-move_queen(Position, Nextboard) :-  get_board(Position, Board),
+/* move_bishop(Position, Nextboard) :- get_board(Position, Board),
                                     get_turn(Position, Turn),
-                                    find_piece(Board, Column, Row, piece(queen, Turn)),
-                                    valid_bishop_move(Board, Row, Column, R, C, Turn),
+                                    find_piece(Board, Column, Row, piece(rook, Turn)),
+                                    between(0, 8, R),
+                                    movable_to_this(Row, Column, R, Column, Board, Turn),
+                                    valid(R),
                                     put_piece(Board, Next, Column, Row, empty),
-                                    put_piece(Next, Nextboard, C, R, piece(queen, Turn)).
-
-% Move King
-filip(Y) :- dirk(X), move_king(X, Y).
-move_king(_, _).
+                                    put_piece(Next, Nextboard, Column, R, piece(rook, Turn)). */
