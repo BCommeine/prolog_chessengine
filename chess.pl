@@ -3,18 +3,15 @@
 
 % Interface of minimax-module:
 % Move
-move(Position, NextPosition) :- all_moves(Position, Next), valid_move(Next), swap(Next, NextPosition).
+move(Position, NextPosition) :- move_bishop(Position, NextPosition).
+move(Position, NextPosition) :- move_king(Position, NextPosition).
+move(Position, NextPosition) :- move_knight(Position, NextPosition).
+move(Position, NextPosition) :- move_pawn(Position, NextPosition).
+move(Position, NextPosition) :- move_queen(Position, NextPosition).
+move(Position, NextPosition) :- move_rook(Position, NextPosition).
+jeffrey(Y) :- dirk(X), move(X, Y).
 
-all_moves(Position, NextPosition) :- move_bishop(Position, NextPosition).
-all_moves(Position, NextPosition) :- move_king(Position, NextPosition).
-all_moves(Position, NextPosition) :- move_knight(Position, NextPosition).
-all_moves(Position, NextPosition) :- move_pawn(Position, NextPosition).
-all_moves(Position, NextPosition) :- move_queen(Position, NextPosition).
-all_moves(Position, NextPosition) :- move_rook(Position, NextPosition).
-jeffrey(Y) :- dirk(X), all_moves(X, Y).
 
-/* valid_move(Position) :- 
- */
 utility(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
 min_to_move([_, _, _, _, _, _, 0]).
 max_to_move([_, _, _, _, _, _, 1]).
@@ -62,9 +59,7 @@ get_full([_, _, _, _, _, Full], Full).
 
 % Utility functions to alter gamestate
 set_board([_|T], B2,  [B2|T]).
-swap_player([Board, Turn, Castling, Passant, Half, Full, 1], [Board, Other, Castling, Passant, Half, Full, 1]) :- other_color(Turn, Other).
-swap_minmax([Board, Turn, Castling, Passant, Half, Full, X], [Board, Turn, Castling, Passant, Half, Full, Y]) :- Y is 1 - X.
-swap(X, Y) :- swap_player(X, Z), swap_minmax(Z, Y).
+swap([Board, Turn, Castling, Passant, Half, Full, X], [Board, Other, Castling, Passant, Half, Full, Y]) :- Y is 1 - X, other_color(Turn, Other).
 % Find piece on a certain position
 get_row(Board, Number, Row) :- arg(Number, Board, Row).
 get_piece(Board, Row, Column, Piece) :- get_row(Board, Row, R), nth0(C, R, Piece), C is Column - 1.
@@ -141,7 +136,8 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         is_empty(Board, Column, R),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, Column, R, piece(pawn, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
@@ -152,7 +148,9 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         find_piece(Board, C, R, piece(_, Other)),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(pawn, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
+
 % Move Rook
 kevin(Y) :- dirk(X), move_rook(X, Y).
 valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, r, Turn).
@@ -176,7 +174,8 @@ move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         valid_rook_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(rook, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 % Move Bishop
 kenny(Y) :- dirk(X), move_bishop(X, Y).
@@ -201,7 +200,8 @@ move_bishop(Position, NextPosition) :-  get_board(Position, Board),
                                         valid_bishop_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(bishop, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 % Move Queen
 chantal(Y) :- dirk(X), move_queen(X, Y).
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
@@ -210,7 +210,8 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         valid_rook_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(queen, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         get_turn(Position, Turn),
@@ -218,7 +219,8 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         valid_bishop_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(queen, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 % Move King
 filip(Y) :- dirk(X), move_king(X, Y).
@@ -228,7 +230,8 @@ move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         valid_king_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(king, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 valid_king_move(Board, Row, Column, R, C, _) :- king_move(Row, Column, R, C), is_empty(Board, C, R).
 valid_king_move(Board, Row, Column, R, C, Turn) :- king_move(Row, Column, R, C), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other).
