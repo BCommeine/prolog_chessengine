@@ -7,9 +7,9 @@ minimax(Pos, BestNextPos, Val) :- % Pos has successors
 minimax(Pos, _, Val) :- % Pos has no successors
     utility(Pos, Val).
 best([Pos], Pos, Val) :-
-    minimax(Pos, _, Val), !.
+    utility(Pos, Val), !.
 best([Pos1 | PosList], BestPos, BestVal) :-
-    minimax(Pos1, _, Val1),
+    utility(Pos1, Val1),
     best(PosList, Pos2, Val2),
     betterOf(Pos1, Val1, Pos2, Val2, BestPos, BestVal).
 
