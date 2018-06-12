@@ -1,4 +1,4 @@
-:-module(chess, [move/2, utility/2, min_to_move/1, max_to_move/1]).
+:-module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
 :- use_module(parser, [parse/2, dirk/1]).
 
 % Interface of minimax-module:
@@ -13,8 +13,8 @@ jeffrey(Y) :- dirk(X), move(X, Y).
 
 
 utility(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
-min_to_move([_, _, _, _, _, _, 0]).
-max_to_move([_, _, _, _, _, _, 1]).
+wining_to_play([_, _, _, _, _, _, 1]).
+losing_to_move([_, _, _, _, _, _, 0]).
 
 
 
@@ -120,7 +120,8 @@ move_knight(Position, NextPosition) :-  get_board(Position, Board),
                                         is_empty(Board, C, R),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(knight, Turn)),
-                                        set_board(Position, Nextboard, NextPosition).
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
 
 % Move Pawn
 xavier(Y) :- dirk(X), move_pawn(X, Y).
