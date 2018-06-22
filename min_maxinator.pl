@@ -1,13 +1,17 @@
-:- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
+:- use_module(chess, [all_moves/2, move/2, utility/2, wining_to_play/1, losing_to_move/1]).
 
 minimax(Pos, Pos, Val, 0) :-
-    utility(Pos, Val), !.
+    utility(Pos, Val), !,
+    write(Pos), nl,
+    write(Val), nl.
 minimax(Pos, BestNextPos, Val, Depth) :-
     D is Depth - 1,
-    bagof(NextPos, move(Pos, NextPos), NextPosList),
+    bagof(NextPos, all_moves(Pos, NextPos), NextPosList),
     best(NextPosList, BestNextPos, Val, D), !.
 minimax(Pos, _, Val, _) :-
-    utility(Pos, Val).
+    utility(Pos, Val),
+    write(Pos), nl,
+    write(Val), nl.
 
 best([Pos], Pos, Val, _) :-
     minimax(Pos, _, Val, _), !.

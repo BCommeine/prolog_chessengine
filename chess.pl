@@ -1,16 +1,24 @@
-:-module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
+:- module(chess, [all_moves/2, move/2, utility/2, wining_to_play/1, losing_to_move/1]).
 :- use_module(parser, [parse/2, dirk/1]).
 
 % Interface of minimax-module:
 % Move
-move(Position, NextPosition) :- move_bishop(Position, NextPosition).
-move(Position, NextPosition) :- move_king(Position, NextPosition).
-move(Position, NextPosition) :- move_knight(Position, NextPosition).
-move(Position, NextPosition) :- move_pawn(Position, NextPosition).
-move(Position, NextPosition) :- move_queen(Position, NextPosition).
-move(Position, NextPosition) :- move_rook(Position, NextPosition).
-jeffrey(Y) :- dirk(X), move(X, Y).
+move(Position, NextPosition) :- all_moves(Position, NextPosition), \+(invalid_position(NextPosition)).
+all_moves(Position, NextPosition) :- move_bishop(Position, NextPosition).
+all_moves(Position, NextPosition) :- move_king(Position, NextPosition).
+all_moves(Position, NextPosition) :- move_knight(Position, NextPosition).
+all_moves(Position, NextPosition) :- move_pawn(Position, NextPosition).
+all_moves(Position, NextPosition) :- move_queen(Position, NextPosition).
+all_moves(Position, NextPosition) :- move_rook(Position, NextPosition).
+jeffrey(Y) :- dirk(X), all_moves(X, Y).
 
+invalid_position(Position) :-   get_board(Position, Board),
+                                get_turn(Position, Turn),
+                                other_color(Turn, Other),
+                                find_piece(Board, Column, Row, piece(king, Other)),                
+                                all_moves(Position, NextPosition),
+                                get_board(NextPosition, NextBoard),
+                                get_piece(NextBoard, Row, Column, piece(_, Turn)).
 
 utility(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
 wining_to_play([_, _, _, _, _, _, 1]).
@@ -59,7 +67,8 @@ get_full([_, _, _, _, _, Full], Full).
 
 % Utility functions to alter gamestate
 set_board([_|T], B2,  [B2|T]).
-swap([Board, Turn, Castling, Passant, Half, Full, X], [Board, Other, Castling, Passant, Half, Full, Y]) :- Y is 1 - X, other_color(Turn, Other).
+set_castling([Board, Turn, _|T], [Board, Turn, C|T], C).
+swap([Board, Turn, Castling, Passant, Half, Full, X], [Board, Other, Castling, Passant, Half, Full, Y]) :-    Y is 1 - X, other_color(Turn, Other).
 % Find piece on a certain position
 get_row(Board, Number, Row) :- arg(Number, Board, Row).
 get_piece(Board, Row, Column, Piece) :- get_row(Board, Row, R), nth0(C, R, Piece), C is Column - 1.
@@ -123,6 +132,17 @@ move_knight(Position, NextPosition) :-  get_board(Position, Board),
                                         set_board(Position, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
 
+move_knight(Position, NextPosition) :-  get_board(Position, Board),
+                                        get_turn(Position, Turn),
+                                        other_color(Turn, Other),
+                                        find_piece(Board, Column, Row, piece(knight, Turn)),
+                                        knight_jump(Column, Row, C, R),
+                                        find_piece(Board, C, R, piece(_, Other)),
+                                        put_piece(Board, Next, Column, Row, empty),
+                                        put_piece(Next, Nextboard, C, R, piece(knight, Turn)),
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
+
 % Move Pawn
 xavier(Y) :- dirk(X), move_pawn(X, Y).
 
@@ -130,6 +150,34 @@ pawn_jump(Row, R, white) :- R is Row - 1, valid(R).
 pawn_jump(Row, R, black) :- R is Row + 1, valid(R).
 pawn_jump(7, 5, white).
 pawn_jump(2, 4, black).
+pawn_jump_promo(2, 1, white).
+pawn_jump_promo(7, 8, black).
+
+% Promotie
+move_pawn(Position, NextPosition) :-    get_board(Position, Board),
+                                        get_turn(Position, Turn),
+                                        find_piece(Board, Column, Row, piece(pawn, Turn)),
+                                        pawn_jump_promo(Row, R, Turn),
+                                        is_empty(Board, Column, R),
+                                        put_piece(Board, Next, Column, Row, empty),
+                                        put_piece(Next, Nextboard, Column, R, piece(Piece, Turn)), is_piece(Piece),
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
+
+move_pawn(Position, NextPosition) :-    get_board(Position, Board),
+                                        get_turn(Position, Turn),
+                                        other_color(Turn, Other),
+                                        find_piece(Board, Column, Row, piece(pawn, Turn)),
+                                        pawn_jump_promo(Row, R, Turn),
+                                        dif(Column, C, 1),
+                                        find_piece(Board, C, R, piece(_, Other)),
+                                        put_piece(Board, Next, Column, Row, empty),
+                                        put_piece(Next, Nextboard, C, R, piece(Piece, Turn)), is_piece(Piece),
+                                        set_board(Position, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition).
+
+
+% Gewone zet
 move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
@@ -152,6 +200,12 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         set_board(Position, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
 
+
+is_piece(rook).
+is_piece(knight).
+is_piece(queen).
+is_piece(bishop).
+
 % Move Rook
 kevin(Y) :- dirk(X), move_rook(X, Y).
 valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, r, Turn).
@@ -168,10 +222,29 @@ valid_rook_move_v(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Colu
 valid_rook_move_v(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
 valid_rook_move_v(Board, Row, Column, Row, C1, u, Turn) :- is_empty(Board, Column, Row), C is Column + 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C1, u, Turn).
 valid_rook_move_v(Board, Row, Column, Row, C1, d, Turn) :- is_empty(Board, Column, Row), C is Column - 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C1, d, Turn).
- 
+
+startposition_rook(Board, Turn, 1, 1, 'q') :- find_piece(Board, 1, 1, piece(rook, Turn)).
+startposition_rook(Board, Turn, 8, 1, 'k') :- find_piece(Board, 8, 1, piece(rook, Turn)).
+startposition_rook(Board, Turn, 8, 8, 'K') :- find_piece(Board, 8, 8, piece(rook, Turn)).
+startposition_rook(Board, Turn, 1, 8, 'Q') :- find_piece(Board, 1, 8, piece(rook, Turn)).
+
+move_rook(Position, NextPosition) :-    get_board(Position, Board),
+                                        get_turn(Position, Turn),
+                                        startposition_rook(Board, Turn, Column, Row, Del),
+                                        get_castling(Position, Castling),
+                                        delete_castling(Del, Castling, Cas),
+                                        write(Column), nl, write(Row), nl,
+                                        set_castling(Position, NewerPosition, Cas),
+                                        valid_rook_move(Board, Row, Column, R, C, Turn),
+                                        put_piece(Board, Next, Column, Row, empty),
+                                        put_piece(Next, Nextboard, C, R, piece(rook, Turn)),
+                                        set_board(NewerPosition, Nextboard, NewPosition),
+                                        swap(NewPosition, NextPosition). 
+
 move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(rook, Turn)),
+                                        \+(startposition_rook(Board, Turn, Column, Row, _)),
                                         valid_rook_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(rook, Turn)),
@@ -232,7 +305,8 @@ move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(king, Turn)),
                                         set_board(Position, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        disable_castling(NewPosition, NewerPosition),
+                                        swap(NewerPosition, NextPosition).
 
 valid_king_move(Board, Row, Column, R, C, _) :- king_move(Row, Column, R, C), is_empty(Board, C, R).
 valid_king_move(Board, Row, Column, R, C, Turn) :- king_move(Row, Column, R, C), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other).
@@ -240,3 +314,9 @@ valid_king_move(Board, Row, Column, R, C, Turn) :- king_move(Row, Column, R, C),
 king_move(Row, Column, R, Column) :- dif(Row, R, 1).
 king_move(Row, Column, Row, C) :- dif(Column, C, 1).
 king_move(Row, Column, R, C) :- dif(Column, C, 1), dif(Row, R, 1).
+
+disable_castling([Board, white, Castling, Passant, Half, Full, X], [Board, white, C, Passant, Half, Full, X]) :- delete_castling('K', Castling, C1), delete_castling('Q', C1, C).
+
+delete_castling(_, [], []).
+delete_castling(Term, [Term|Tail], Tail) :- !.
+delete_castling(Term, [Head|Tail], [Head|Result]) :- delete_castling(Term, Tail, Result).

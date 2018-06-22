@@ -1,3 +1,4 @@
+:- module(min_max, [minimax/3]).
 :- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
 
 
