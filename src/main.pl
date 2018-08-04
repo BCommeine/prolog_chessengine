@@ -1,10 +1,12 @@
 #!/usr/bin/env swipl
 
-:- use_module(parser, [parse/2, dirk/1]).
+:- use_module(parser, [parse/2]).
 :- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
 :- use_module(min_max, [minimax/3]).
 
 :- initialization(main, main).
+
+%Omdat de parser begonnen is van het idee een string om te zetten naar een spelvoorstelling zetten we de argumenten eerst om naar een string
 
 main([Board, Turn, Castling, Passant, Half, Full]) :- 
     atomic_list_concat([Board, Turn, Castling, Passant, Half, Full],' ',Fen),

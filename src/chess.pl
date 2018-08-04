@@ -1,17 +1,21 @@
 :- module(chess, [all_moves/2, move/2, utility/2, wining_to_play/1, losing_to_move/1]).
-:- use_module(parser, [parse/2, dirk/1]).
+:- use_module(parser, [parse/2]).
 
 % Interface of minimax-module:
 % Move
+
+% Deze move voldoet aan het interface, voorzien in de minmax boom
 move(Position, NextPosition) :- all_moves(Position, NextPosition), \+(invalid_position(NextPosition)).
+
+% all_moves gaat alle mogelijke zetten, schaak of niet, genereren
 all_moves(Position, NextPosition) :- move_bishop(Position, NextPosition).
 all_moves(Position, NextPosition) :- move_king(Position, NextPosition).
 all_moves(Position, NextPosition) :- move_knight(Position, NextPosition).
 all_moves(Position, NextPosition) :- move_pawn(Position, NextPosition).
 all_moves(Position, NextPosition) :- move_queen(Position, NextPosition).
 all_moves(Position, NextPosition) :- move_rook(Position, NextPosition).
-jeffrey(Y) :- dirk(X), all_moves(X, Y).
 
+% Wanneer iemand een zet doet, waarop zijn tegenstander zijn koning kan slaan (schaak) is deze zet invalid
 invalid_position(Position) :-   get_board(Position, Board),
                                 get_turn(Position, Turn),
                                 other_color(Turn, Other),
@@ -20,13 +24,15 @@ invalid_position(Position) :-   get_board(Position, Board),
                                 get_board(NextPosition, NextBoard),
                                 get_piece(NextBoard, Row, Column, piece(_, Turn)).
 
+% Deze utility functie behoort tot het interface van de minmaxboom
 utility(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
+% De volgende twee functies ook
 wining_to_play([_, _, _, _, _, _, 1]).
 losing_to_move([_, _, _, _, _, _, 0]).
 
 
 
-% Board Value
+% Board Value is een functie die een waarde zal geven aan een bord naargelang de speler aan beurt nog stukken heeft, en zijn tegenstander geen meer
 board_value(Board, Turn, Value) :-  get_row(Board, 1, R1), row_value(R1, V1, Turn),
                                     get_row(Board, 2, R2), row_value(R2, V2, Turn),
                                     get_row(Board, 3, R3), row_value(R3, V3, Turn),
@@ -37,12 +43,12 @@ board_value(Board, Turn, Value) :-  get_row(Board, 1, R1), row_value(R1, V1, Tur
                                     get_row(Board, 8, R8), row_value(R8, V8, Turn),
                                     Value is V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8, !.
 
-% Row Value
+% Row Value (hulpfunctie)
 row_value([], _, _).
 row_value([E], V, Turn) :- piece_value(E, Turn, V), !.
 row_value([H|T], V, Turn) :- piece_value(H, Turn, V1), row_value(T, V2, Turn), V is V2 + V1.
 
-% Piece Value
+% Piece Value (hulpfunctie)
 piece_value(empty, _, 0).
 piece_value(piece(pawn, Turn), Turn, 10).
 piece_value(piece(pawn, Other), Turn, -10) :- other_color(Turn, Other).
@@ -68,6 +74,7 @@ get_full([_, _, _, _, _, Full], Full).
 % Utility functions to alter gamestate
 set_board([_|T], B2,  [B2|T]).
 set_castling([Board, Turn, _|T], [Board, Turn, C|T], C).
+% Swap players en min-max na een beurt
 swap([Board, Turn, Castling, Passant, Half, Full, X], [Board, Other, Castling, Passant, Half, Full, Y]) :-    Y is 1 - X, other_color(Turn, Other).
 % Find piece on a certain position
 get_row(Board, Number, Row) :- arg(Number, Board, Row).
@@ -94,6 +101,7 @@ find_piece(rows(_ , _, _, _, _, _, _, Row), Column, 8, Piece) :- piece_row(Row, 
 set_move([_|T], [Piece|T], Piece, 1).
 set_move([H|T1], [H|T2], Piece, N) :- set_move(T1, T2, Piece, N1), N is N1 +1.
 
+% Zet een stuk op een bepaalde plaats op het bord (adhv row/column)
 put_piece(Board, Nextboard, Col, Row, Piece) :-
     functor(Board, rows, N),
     functor(Nextboard, rows, N),
@@ -117,7 +125,6 @@ put_piece(N, Board, Nextboard, Col, Row, Piece):-
 put_piece(0, _, _, _, _, _).
 
 % Move knight
-patrick(Y) :- dirk(X), move_knight(X, Y).
 dif(A, B, D) :- B is A + D,valid(B).
 dif(A, B, D) :- B is A - D,valid(B).
 knight_jump(Column, Row, C, R) :- dif(Column, C, 2), dif(Row, R, 1), valid(C), valid(R).
@@ -144,8 +151,6 @@ move_knight(Position, NextPosition) :-  get_board(Position, Board),
                                         swap(NewPosition, NextPosition).
 
 % Move Pawn
-xavier(Y) :- dirk(X), move_pawn(X, Y).
-
 pawn_jump(Row, R, white) :- R is Row - 1, valid(R).
 pawn_jump(Row, R, black) :- R is Row + 1, valid(R).
 pawn_jump(7, 5, white).
@@ -200,24 +205,25 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         set_board(Position, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
 
-
+% Dit zijn de stukken die gebruikt mogen worden bij het promoveren
 is_piece(rook).
 is_piece(knight).
 is_piece(queen).
 is_piece(bishop).
 
 % Move Rook
-kevin(Y) :- dirk(X), move_rook(X, Y).
 valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, r, Turn).
 valid_rook_move(Board, Row, Column, R2, Column, Turn) :- R is Row - 1, valid(R), valid_rook_move_h(Board, R, Column, R2, Column, l, Turn).
 valid_rook_move(Board, Row, Column, Row, C2,Turn) :- C is Column + 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C2, u, Turn).
 valid_rook_move(Board, Row, Column, Row, C2,Turn) :- C is Column - 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C2, d, Turn).
 
+% Wanneer de eerste move horizontaal was blijven we adhv deze relatie horizontale vakjes vinden. Er is een variabele voor links/rechts
 valid_rook_move_h(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
 valid_rook_move_h(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
 valid_rook_move_h(Board, Row, Column, R1, Column, r, Turn) :- is_empty(Board, Column, Row), R is Row + 1, valid(R), valid_rook_move_h(Board, R, Column, R1, Column, r, Turn).
 valid_rook_move_h(Board, Row, Column, R1, Column, l, Turn) :- is_empty(Board, Column, Row), R is Row - 1, valid(R), valid_rook_move_h(Board, R, Column, R1, Column, l, Turn).
 
+% Wanneer de eerste move verticaal was blijven we adhv deze relatie verticale vakjes vinden, er is een variabele voor up/down
 valid_rook_move_v(Board, Row, Column, Row, Column, _, _) :- is_empty(Board, Column, Row).
 valid_rook_move_v(Board, Row, Column, Row, Column, _, Turn) :- get_piece(Board, Row, Column, piece(_, Other)), other_color(Turn, Other).
 valid_rook_move_v(Board, Row, Column, Row, C1, u, Turn) :- is_empty(Board, Column, Row), C is Column + 1, valid(C), valid_rook_move_v(Board, Row, C, Row, C1, u, Turn).
@@ -228,12 +234,12 @@ startposition_rook(Board, Turn, 8, 1, 'k') :- find_piece(Board, 8, 1, piece(rook
 startposition_rook(Board, Turn, 8, 8, 'K') :- find_piece(Board, 8, 8, piece(rook, Turn)).
 startposition_rook(Board, Turn, 1, 8, 'Q') :- find_piece(Board, 1, 8, piece(rook, Turn)).
 
+% Hier gebeurt er niets bijzonders (stuk vinden, zet genereren en uitvoeren), alleen zal de rokade-aanduider ook aangepast worden
 move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         startposition_rook(Board, Turn, Column, Row, Del),
                                         get_castling(Position, Castling),
                                         delete_castling(Del, Castling, Cas),
-                                        write(Column), nl, write(Row), nl,
                                         set_castling(Position, NewerPosition, Cas),
                                         valid_rook_move(Board, Row, Column, R, C, Turn),
                                         put_piece(Board, Next, Column, Row, empty),
@@ -252,7 +258,7 @@ move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         swap(NewPosition, NextPosition).
 
 % Move Bishop
-kenny(Y) :- dirk(X), move_bishop(X, Y).
+% De bishop is op dezelfde manier gedefinieerd als de toren, minus het rokeren
 valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row + 1, C1 is Column + 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, r, Turn).
 valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row + 1, C1 is Column - 1, valid(R1), valid(C1), valid_bishop_move_u(Board, R1, C1, R, C, l, Turn).
 valid_bishop_move(Board, Row, Column, R, C, Turn) :- R1 is Row - 1, C1 is Column + 1, valid(C1), valid(R1), valid_bishop_move_d(Board, R1, C1, R, C, r, Turn).
@@ -277,7 +283,7 @@ move_bishop(Position, NextPosition) :-  get_board(Position, Board),
                                         set_board(Position, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
 % Move Queen
-chantal(Y) :- dirk(X), move_queen(X, Y).
+% Om een zet te genereren voor de koningin genereren we alle zetten die zowel torens als lopers zouden kunnen maken
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(queen, Turn)),
@@ -297,7 +303,7 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         swap(NewPosition, NextPosition).
 
 % Move King
-filip(Y) :- dirk(X), move_king(X, Y).
+% Voor de koning genereren we alle zetten op één plaats afstand. Ook worden de rokade variabelen aangepast
 move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(king, Turn)),

@@ -1,0 +1,30 @@
+:- use_module(parser, [parse/2]).
+:- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
+:- use_module(min_max, [minimax/3]).
+
+/* :- initialization main.
+main :- run_tests(). */
+
+
+
+:- begin_tests(parsing).
+test("initial game parsing") :- parse("rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",[rows([piece(rook, black), piece(knight, black), piece(bishop, black), piece(queen, black), piece(king, black), piece(bishop, black), piece(knight, black), piece(rook, black)], [piece(pawn, black), piece(pawn, black), piece(pawn, black), piece(pawn, black), piece(pawn, black), piece(pawn, black), piece(pawn, black)], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [piece(pawn, white), piece(pawn, white), piece(pawn, white), piece(pawn, white), piece(pawn, white), piece(pawn, white), piece(pawn, white), piece(pawn, white)], [piece(rook, white), piece(knight, white), piece(bishop, white), piece(queen, white), piece(king, white), piece(bishop, white), piece(knight, white), piece(rook, white)]), white, ['K', 'Q', k, q], [-], ['0'], ['1'], 1]).
+test("empty field parsing") :- parse("8/8/8/8/8/8/8/8 w KQkq - 0 1", [rows([empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty]), white, ['K', 'Q', k, q], [-], ['0'], ['1'], 1]).
+test("black player turn") :-  parse("8/8/8/8/8/8/8/8 b KQkq - 0 1", [rows([empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty]), black, ['K', 'Q', k, q], [-], ['0'], ['1'], 1]).
+test("castling options") :-  parse("8/8/8/8/8/8/8/8 b Kq - 0 1", [rows([empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty]), black, ['K', q], [-], ['0'], ['1'], 1]).
+test("half turn") :-  parse("8/8/8/8/8/8/8/8 b Kq - 42 1", [rows([empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty]), black, ['K', q], [-], ['4', '2'], ['1'], 1]).
+test("half turn") :-  parse("8/8/8/8/8/8/8/8 b Kq - 0 42", [rows([empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty], [empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty],[empty, empty, empty, empty, empty, empty, empty, empty]), black, ['K', q], [-], ['0'], ['4', '2'], 1]).
+:- end_tests(parsing).
+
+magic(Voorstelling, Fen) :- move(Voorstelling, Move), parse(Fen, Move).
+compare_lists([], []).
+compare_lists([H|T1], [H|T2]) :- compare_lists(T1, T2).
+
+% Ik had de bedoeling om voor enkele zetten de gegenereerde zetten na te zien, om te kijken of alle zetten (en enkel correcte zetten) gegenereerd gingen worden, maar functies in de aard van deze hieronder werkten niet,
+% ongeacht ik voor dubbele, enkele of geen aanhalingstekens ging. Ik heb dan maar geprobeerd zelf een compare te schrijven maar zelf dit werkte niet. De moves heb ik manueel enkele (honderden) keren gecheckt en zouden ook moeten kloppen
+% Bij deze dus de reden van mijn sterk tekort aan testen
+
+/* :- begin_tests(moves).
+test("startmoves") :- parse("8/8/8/4Q3/8/8/8/8 w KQkq - 0 1", Voorstelling), findall(Fen, magic(Voorstelling, Fen), Moves),  compare_lists(Moves, Moves2), write(Moves2),
+    Moves2 = ['8/8/8/8/4Q3/8/8/8 b KQkq - 0 1','8/8/8/8/8/4Q3/8/8 b KQkq - 0 1','8/8/8/8/8/8/4Q3/8 b KQkq - 0 1','8/8/8/8/8/8/8/4Q3 b KQkq - 0 1','8/8/4Q3/8/8/8/8/8 b KQkq - 0 1','8/4Q3/8/8/8/8/8/8 b KQkq - 0 1','4Q3/8/8/8/8/8/8/8 bKQkq - 0 1','8/8/8/5Q2/8/8/8/8 b KQkq - 0 1','8/8/8/6Q1/8/8/8/8 b KQkq - 0 1','8/8/8/7Q/8/8/8/8 b KQkq - 0 1','8/8/8/3Q4/8/8/8/8 b KQkq - 0 1','8/8/8/2Q5/8/8/8/8 b KQkq - 0 1','8/8/8/1Q6/8/8/8/8 b KQkq - 0 1','8/8/8/Q7/8/8/8/8 b KQkq - 0 1','8/8/8/8/5Q2/8/8/8 b KQkq - 0 1','8/8/8/8/8/6Q1/8/8 b KQkq - 0 1','8/8/8/8/8/8/7Q/8 b KQkq - 0 1','8/8/8/8/3Q4/8/8/8 b KQkq - 0 1','8/8/8/8/8/2Q5/8/8 b KQkq - 0 1','8/8/8/8/8/8/1Q6/8 b KQkq - 0 1','8/8/8/8/8/8/8/Q7 b KQkq - 0 1','8/8/5Q2/8/8/8/8/8 b KQkq - 0 1','8/6Q1/8/8/8/8/8/8 b KQkq - 0 1','7Q/8/8/8/8/8/8/8 b KQkq - 0 1','8/8/3Q4/8/8/8/8/8 b KQkq - 0 1','8/2Q5/8/8/8/8/8/8 b KQkq - 0 1','1Q6/8/8/8/8/8/8/8 b KQkq - 0 1'].
+:-end_tests(moves). */
