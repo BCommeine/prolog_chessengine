@@ -1,27 +1,40 @@
 :- module(min_max, [minimax/3]).
-:- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
+:- use_module(chess, [move/2, value/2]).
 
-% Deze minimax gaat op een niveau zoeken naar de beste zet. Voor elke mogelijke zet zal hij de waarde berekenen en de hoogste waarde uitkiezen.
-% Aanmaken van zetten
-minimax(Pos, BestNextPos, Val) :- % Pos has successors
-    bagof(NextPos, move(Pos, NextPos), NextPosList),
-    best(NextPosList, BestNextPos, Val), !.
-minimax(Pos, _, Val) :- % Pos has no successors
-    utility(Pos, Val).
+minimax(Pos, Move, Depth) :- minimax(Depth, Pos, 1, _, Move).
 
-% Inplaats van de kinderen te checken op waarde berekenen we direct de waarde van de positie
-best([Pos], Pos, Val) :-
-    utility(Pos, Val), !.
-best([Pos1 | PosList], BestPos, BestVal) :-
-    utility(Pos1, Val1),
-    best(PosList, Pos2, Val2),
-    betterOf(Pos1, Val1, Pos2, Val2, BestPos, BestVal).
+minimax(0, Position, Player, Value, _) :-
+      value(Position, V),
+      Value is V*Player.
 
-% Deze functie beslist of we zoeken naar een zo goed mogelijke of zo slecht mogelijke waarde, maar is in deze minmaxboom overbodig
-betterOf(Pos0, Val0, _, Val1, Pos0, Val0) :-
-    wining_to_play(Pos0),
-    Val0 > Val1, !. 
-betterOf(Pos0, Val0, _, Val1, Pos0, Val0) :-
-    losing_to_move(Pos0),
-    Val0 < Val1, !.
-betterOf(_, _, Pos1, Val1, Pos1, Val1).
+minimax(D, Position, Player, Value, Move) :-
+      D > 0,
+      D1 is D - 1,
+      findall(M, move(Position, M), Moves), % There must be at least one move!
+      minimax(Moves, Position, D1, Player, -100000, nil, Value, Move).
+
+minimax(0, Position, Player, Value, _) :-
+      value(Position, V),
+      Value is V*Player.
+
+minimax(D, Position, Player, Value, Move) :-
+      D > 0,
+      D1 is D - 1,
+      findall(M, move(Position, M), Positions), % There must be at least one move!
+      minimax(Positions, Position, D1, Player, -10000, nil, Value, Move).
+
+minimax([], _, _, _, Value, Best, Value, Best).
+
+minimax([NextPosition|Positions],Position,D,Player, Value0, _, BestValue, BestMove):-
+      Opponent is -Player,
+      minimax(D, NextPosition, Opponent, OppValue, _OppMove),
+      Value is -OppValue,
+      Value >= Value0,
+      minimax(Positions,Position,D,Player, Value ,NextPosition ,BestValue,BestMove), !.
+
+minimax([NextPosition|Positions],Position,D,Player, Value0, Move0, BestValue, BestMove):-
+      Opponent is -Player,
+      minimax(D, NextPosition, Opponent, OppValue, _OppMove),
+      Value is -OppValue,
+      Value < Value0,
+      minimax(Positions,Position,D,Player, Value0,Move0,BestValue,BestMove), !.

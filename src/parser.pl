@@ -12,20 +12,7 @@ dirk(X) :- initial_fen_string(F), parse(F, X).
 % De interne voorstelling is een lijst met Board, Turn, ..., adhv een dcg parsen we de string.
 % Let op de twee voorkomens van deze functie, eindigend op 1 en 0. Deze boolean is om te kijken of we een zo hoog mogelijke of zo laag mogelijke score willen,
 % en dus enkel handig bij de minmaxboom. De beide functie zijn nodig omdat we beide voorkomens willen kunnen parsen.
-position([Board, Turn, Castling, Passant, Half, Full, 1]) -->
-  board(Board),
-  space,
-  turn(Turn),
-  space,
-  castling_rights(Castling),
-  space,
-  passant_square(Passant),
-  space,
-  integer(Half),
-  space,
-  integer(Full).
-
-position([Board, Turn, Castling, Passant, Half, Full, 0]) -->
+position([Board, Turn, Castling, Passant, Half, Full]) -->
   board(Board),
   space,
   turn(Turn),
@@ -93,7 +80,7 @@ castling_rights_char(q) --> [q].
 
 % Hier wordt het vakje voor de enpassantregel bijgehouden
 passant_square([-]) --> [-].
-passant_square([C, D2]) --> [Char, D], {sub_string('abcdefgh', C, 1, _, Ch), atom_string(Char, Ch), atom_number(D, D2)} .
+passant_square([C, D2]) --> [Char, D], {sub_string('xabcdefgh', C, 1, _, Ch), atom_string(Char, Ch), atom_number(D, D2)} .
 
 %Hulpmiddel voor het parsen van de fen
 space --> [' '], !.

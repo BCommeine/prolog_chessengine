@@ -1,8 +1,8 @@
 #!/usr/bin/env swipl
 
 :- use_module(parser, [parse/2]).
-:- use_module(chess, [move/2, utility/2, wining_to_play/1, losing_to_move/1]).
-:- use_module(min_maxinator, [minimax/4]).
+:- use_module(chess, [move/2]).
+:- use_module(min_max, [minimax/3]).
 
 :- initialization(main, main).
 
@@ -18,7 +18,7 @@ main([Board, Turn, Castling, Passant, Half, Full, Test]) :-
 main([Board, Turn, Castling, Passant, Half, Full]) :-
     atomic_list_concat([Board, Turn, Castling, Passant, Half, Full],' ',Fen),
     parse(Fen, X),
-    minimax(X, B, _, 2),
+    minimax(X, B, 2),
     parse(Response, B),
     write(Response),
     nl,

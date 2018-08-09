@@ -1,5 +1,5 @@
-:- module(chess, [all_moves/2, move/2, utility/2, wining_to_play/1, losing_to_move/1]).
-% :- use_module(parser, [parse/2,  dirk/1]).
+:- module(chess, [get_turn/2, all_moves/2, move/2, value/2, wining_to_play/2, losing_to_move/2]).
+:- use_module(parser, [parse/2,  dirk/1]).
 
 % Interface of minimax-module:
 % Move
@@ -25,10 +25,10 @@ invalid_position(Position) :-   get_board(Position, Board),
                                 get_piece(NextBoard, Row, Column, piece(_, Turn)).
 
 % Deze utility functie behoort tot het interface van de minmaxboom
-utility(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
+value(Position, Value) :- get_board(Position, Board), get_turn(Position, Turn), board_value(Board, Turn, Value).
 % De volgende twee functies ook
-wining_to_play([_, _, _, _, _, _, 1]).
-losing_to_move([_, _, _, _, _, _, 0]).
+wining_to_play(Board, Turn) :- get_turn(Board, Turn).
+losing_to_move(Board, Turn) :- get_turn(Board, Other), other_color(Turn, Other).
 
 
 
@@ -44,7 +44,7 @@ board_value(Board, Turn, Value) :-  get_row(Board, 1, R1), row_value(R1, V1, Tur
                                     Value is V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8, !.
 
 % Row Value (hulpfunctie)
-row_value([], _, _).
+row_value([], 0, _).
 row_value([E], V, Turn) :- piece_value(E, Turn, V), !.
 row_value([H|T], V, Turn) :- piece_value(H, Turn, V1), row_value(T, V2, Turn), V is V2 + V1.
 
@@ -78,8 +78,8 @@ set_enpassant([Board, Turn, Castling, _|T], [Board, Turn, Castling, Passant|T], 
 set_halfmove([Board, Turn, Castling, Passant, _|T], [Board, Turn, Castling, Passant, Halfmove|T], Halfmove).
 
 % Swap players en min-max na een beurt
-swap([Board, white, Castling, Passant, Half, Full, X], [Board, black, Castling, Passant, Half, Full, Y]) :-    Y is 1 - X.
-swap([Board, black, Castling, Passant, Half, Full, X], [Board, white, Castling, Passant, Half, Fuller, Y]) :-    Y is 1 - X, Fuller is Full + 1.
+swap([Board, white, Castling, Passant, Half, Full], [Board, black, Castling, Passant, Half, Full]).
+swap([Board, black, Castling, Passant, Half, Full], [Board, white, Castling, Passant, Half, Fuller]):- Fuller is Full + 1.
 % Find piece on a certain position
 get_row(Board, Number, Row) :- arg(Number, Board, Row).
 get_piece(Board, Row, Column, Piece) :- get_row(Board, Row, R), nth0(C, R, Piece), C is Column - 1.
@@ -177,7 +177,7 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
                                         pawn_jump_promo(Row, R, Turn),
-                                        is_empty(Board, Column, R),
+                                        is_empty(Board, Column, R), !,
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, Column, R, piece(Piece, Turn)), is_piece(Piece),
                                         set_enpassant(Position, Positioner, ['-']),
@@ -191,7 +191,7 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
                                         pawn_jump_promo(Row, R, Turn),
                                         dif(Column, C, 1),
-                                        find_piece(Board, C, R, piece(_, Other)),
+                                        find_piece(Board, C, R, piece(_, Other)), !,
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, C, R, piece(Piece, Turn)), is_piece(Piece),
                                         set_enpassant(Position, Positioner, ['-']),
@@ -208,7 +208,7 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, Column, R, piece(pawn, Turn)),
                                         set_enpassant(Position, Positioner, [Column, R2]),
-                                        R2 is (Row + R) / 2,
+                                        R2 is 9 - ((Row + R) / 2),
                                         set_halfmove(Positioner, Positionest, 0),
                                         set_board(Positionest, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
