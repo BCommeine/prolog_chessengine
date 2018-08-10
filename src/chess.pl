@@ -130,6 +130,20 @@ put_piece(N, Board, Nextboard, Col, Row, Piece):-
 
 put_piece(0, _, _, _, _, _).
 
+take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, Piece, Color) :-
+  startposition_rook(Board, Other, C, R, T), !,
+  delete_castling(T, Castling, Cas),
+  other_color(Color, Other),
+  put_piece(Board, Next, Column, Row, empty),
+  put_piece(Next, NewBoard, C, R, piece(Piece, Color)).
+
+take_piece(Board, NewBoard, Castling, Castling, Column, Row, C, R, Piece, Color) :-
+  find_piece(Board, C, R, piece(_, Other)),
+  other_color(Color, Other),
+  put_piece(Board, Next, Column, Row, empty),
+  put_piece(Next, NewBoard, C, R, piece(Piece, Color)).
+
+
 % Move knight
 patrick(Y) :- dirk(X), move_knight(X, Y).
 
@@ -151,16 +165,15 @@ move_knight(Position, NextPosition) :-  get_board(Position, Board),
 
 move_knight(Position, NextPosition) :-  get_board(Position, Board),
                                         get_turn(Position, Turn),
-                                        other_color(Turn, Other),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(knight, Turn)),
                                         set_halfmove(Position, Positioner, 0),
                                         set_enpassant(Positioner, Positionest, ['-']),
                                         knight_jump(Column, Row, C, R),
-                                        find_piece(Board, C, R, piece(_, Other)),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(knight, Turn)),
-                                        set_board(Positionest, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, knight, Turn),
+                                        set_board(Positionest, NewBoard, NewPosition),
+                                        set_castling(NewPosition, NewerPosition, Cas),
+                                        swap(NewerPosition, NextPosition).
 
 % Move Pawn
 xavier(Y) :- dirk(X), move_pawn(X, Y).
@@ -187,17 +200,17 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
 
 move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
-                                        other_color(Turn, Other),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
                                         pawn_jump_promo(Row, R, Turn),
                                         dif(Column, C, 1),
-                                        find_piece(Board, C, R, piece(_, Other)), !,
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(Piece, Turn)), is_piece(Piece),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, Piece, Turn), !,
+                                        is_piece(Piece),
                                         set_enpassant(Position, Positioner, ['-']),
                                         set_halfmove(Positioner, Positionest, 0),
-                                        set_board(Positionest, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positionest, NewBoard, NewPosition),
+                                        set_castling(NewPosition, NewerPosition, Cas),
+                                        swap(NewerPosition, NextPosition).
 
 % Dubbele sprong zet
 move_pawn(Position, NextPosition) :-    get_board(Position, Board),
@@ -228,22 +241,21 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
 
 move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
-                                        other_color(Turn, Other),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
                                         pawn_jump(Row, R, Turn),
                                         dif(Column, C, 1),
-                                        find_piece(Board, C, R, piece(_, Other)),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(pawn, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, pawn, Turn),
                                         set_enpassant(Position, Positioner, ['-']),
                                         set_halfmove(Positioner, Positionest, 0),
-                                        set_board(Positionest, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positionest, NewBoard, NewPosition),
+                                        set_castling(NewPosition, NewerPosition, Cas),
+                                        swap(NewerPosition, NextPosition).
 
 % Dit zijn de stukken die gebruikt mogen worden bij het promoveren
+is_piece(queen).
 is_piece(rook).
 is_piece(knight).
-is_piece(queen).
 is_piece(bishop).
 
 % Move Rook
@@ -293,12 +305,12 @@ move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         delete_castling(Del, Castling, Cas),
                                         set_castling(Position, NewerPosition, Cas),
                                         valid_rook_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(rook, Turn)),
+                                        take_piece(Board, NewBoard, Cas, Cas2, Column, Row, C, R, rook, Turn),
                                         set_halfmove(NewerPosition, NewererPosition, 0),
                                         set_enpassant(NewererPosition, NewerPositioner, ['-']),
-                                        set_board(NewerPositioner, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(NewerPositioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, Chewbacca, Cas2),
+                                        swap(Chewbacca, NextPosition).
 
 
 move_rook(Position, NextPosition) :-    get_board(Position, Board),
@@ -315,15 +327,16 @@ move_rook(Position, NextPosition) :-    get_board(Position, Board),
 
 move_rook(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(rook, Turn)),
                                         \+(startposition_rook(Board, Turn, Column, Row, _)),
                                         valid_rook_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(rook, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, rook, Turn),
                                         set_halfmove(Position, Poposition, 0),
                                         set_enpassant(Poposition, Positioner, ['-']),
-                                        set_board(Positioner, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, Chewbacca, Cas),
+                                        swap(Chewbacca, NextPosition).
 
 % Move Bishop
 kenny(Y) :- dirk(X), move_bishop(X, Y).
@@ -357,14 +370,15 @@ move_bishop(Position, NextPosition) :-  get_board(Position, Board),
 
 move_bishop(Position, NextPosition) :-  get_board(Position, Board),
                                         get_turn(Position, Turn),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(bishop, Turn)),
                                         valid_bishop_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(bishop, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, bishop, Turn),
                                         set_halfmove(Position, Poposition, 0),
                                         set_enpassant(Poposition, Positioner, ['-']),
-                                        set_board(Positioner, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, Chewbacca, Cas),
+                                        swap(Chewbacca, NextPosition).
 % Move Queen
 chantal(Y) :- dirk(X), move_queen(X, Y).
 
@@ -382,14 +396,15 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
 
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         get_turn(Position, Turn),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(queen, Turn)),
                                         valid_rook_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(queen, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, queen, Turn),
                                         set_halfmove(Position, Poposition, 0),
                                         set_enpassant(Poposition, Positioner, ['-']),
-                                        set_board(Positioner, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, Chewbacca, Cas),
+                                        swap(Chewbacca, NextPosition).
 
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         get_turn(Position, Turn),
@@ -404,14 +419,15 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
 
 move_queen(Position, NextPosition) :-   get_board(Position, Board),
                                         get_turn(Position, Turn),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(queen, Turn)),
                                         valid_bishop_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(queen, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, queen, Turn),
                                         set_halfmove(Position, Poposition, 0),
                                         set_enpassant(Poposition, Positioner, ['-']),
-                                        set_board(Positioner, Nextboard, NewPosition),
-                                        swap(NewPosition, NextPosition).
+                                        set_board(Positioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, Chewbacca, Cas),
+                                        swap(Chewbacca, NextPosition).
 
 % Move King
 filip(Y) :- dirk(X), move_king(X, Y).
@@ -431,15 +447,16 @@ move_king(Position, NextPosition) :-    get_board(Position, Board),
 
 move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
+                                        get_castling(Position, Castling),
                                         find_piece(Board, Column, Row, piece(king, Turn)),
                                         valid_king_move(Board, Row, Column, R, C, Turn, reset),
-                                        put_piece(Board, Next, Column, Row, empty),
-                                        put_piece(Next, Nextboard, C, R, piece(king, Turn)),
+                                        take_piece(Board, NewBoard, Castling, Cas, Column, Row, C, R, king, Turn),
                                         set_halfmove(Position, Poposition, 0),
                                         set_enpassant(Poposition, Positioner, ['-']),
-                                        set_board(Positioner, Nextboard, NewPosition),
-                                        disable_castling(NewPosition, NewerPosition),
-                                        swap(NewerPosition, NextPosition).
+                                        set_board(Positioner, NewBoard, NewPosition),
+                                        set_castling(NewPosition, NewerPosition , Cas),
+                                        disable_castling(NewerPosition, Chewbacca),
+                                        swap(Chewbacca, NextPosition).
 
 valid_king_move(Board, Row, Column, R, C, _, inc) :- king_move(Row, Column, R, C), is_empty(Board, C, R).
 valid_king_move(Board, Row, Column, R, C, Turn, reset) :- king_move(Row, Column, R, C), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other).
