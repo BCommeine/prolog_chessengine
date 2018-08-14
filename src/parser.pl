@@ -4,7 +4,7 @@ parse(Fen, Voorstelling) :- ground(Fen), string_chars(Fen, Chars), position(Voor
 % Deze dan weer enkel om een voorstelling naar een Fen-string om te zetten
 parse(Fen, Voorstelling) :- position(Voorstelling, Chars, []), string_chars(F, Chars), atom_string(F, Fen),!.
 
-initial_fen_string("rnbqkbnr/ppppppp/1N6/8/8/2p5/PPPPPPPP/RNBQKBNR w KQkq c6 1 1").
+initial_fen_string("rnbqkbn1/ppppppp1/5r2/8/8/8/8/R3K2R w KQq - 1 11").
 dirk(X) :- initial_fen_string(F), parse(F, X).
 
 

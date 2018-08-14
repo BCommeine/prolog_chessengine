@@ -67,7 +67,7 @@ piece_value(piece(king, Other), Turn, -9001) :- other_color(Turn, Other).
 get_board([Board|_], Board).
 get_turn([_, Turn| _], Turn).
 get_castling([_, _, Castling|_], Castling).
-get_passant([_, _, _, Passant|_], Passant).
+get_passant([_, _, _, [C, R2]|_], [R, C]) :- R is 9 - R2.
 get_half([_, _, _, _, Half|_], Half).
 get_full([_, _, _, _, _, Full|_], Full).
 
@@ -218,10 +218,12 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         find_piece(Board, Column, Row, piece(pawn, Turn)),
                                         pawn_double_jump(Row, R, Turn),
                                         is_empty(Board, Column, R),
+                                        is_empty(Board, Column, Middle),
+                                        Middle is (Row + R)/2,
                                         put_piece(Board, Next, Column, Row, empty),
                                         put_piece(Next, Nextboard, Column, R, piece(pawn, Turn)),
                                         set_enpassant(Position, Positioner, [Column, R2]),
-                                        R2 is 9 - ((Row + R) / 2),
+                                        R2 is 9 - Middle,
                                         set_halfmove(Positioner, Positionest, 0),
                                         set_board(Positionest, Nextboard, NewPosition),
                                         swap(NewPosition, NextPosition).
@@ -250,6 +252,20 @@ move_pawn(Position, NextPosition) :-    get_board(Position, Board),
                                         set_halfmove(Positioner, Positionest, 0),
                                         set_board(Positionest, NewBoard, NewPosition),
                                         set_castling(NewPosition, NewerPosition, Cas),
+                                        swap(NewerPosition, NextPosition).
+% Enpassant
+move_pawn(Position, NextPosition) :-    get_board(Position, Board),
+                                        get_turn(Position, Turn),
+                                        get_passant(Position, [R, C]),
+                                        find_piece(Board, Column, Row, piece(pawn, Turn)),
+                                        pawn_jump(Row, R, Turn),
+                                        dif(Column, C, 1),
+                                        put_piece(Board, Next, Column, Row, empty),
+                                        put_piece(Next, Nextish, C, Row, empty),
+                                        put_piece(Nextish, NewBoard, C, R, piece(pawn, Turn)),
+                                        set_enpassant(Position, Positioner, ['-']),
+                                        set_halfmove(Positioner, Positionest, 0),
+                                        set_board(Positionest, NewBoard, NewerPosition),
                                         swap(NewerPosition, NextPosition).
 
 % Dit zijn de stukken die gebruikt mogen worden bij het promoveren
@@ -433,6 +449,9 @@ move_queen(Position, NextPosition) :-   get_board(Position, Board),
 filip(Y) :- dirk(X), move_king(X, Y).
 
 % Voor de koning genereren we alle zetten op één plaats afstand. Ook worden de rokade variabelen aangepast
+valid_king_move(Board, Row, Column, R, C, _, inc) :- king_move(Row, Column, R, C), is_empty(Board, C, R).
+valid_king_move(Board, Row, Column, R, C, Turn, reset) :- king_move(Row, Column, R, C), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other).
+
 move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         get_turn(Position, Turn),
                                         find_piece(Board, Column, Row, piece(king, Turn)),
@@ -458,12 +477,84 @@ move_king(Position, NextPosition) :-    get_board(Position, Board),
                                         disable_castling(NewerPosition, Chewbacca),
                                         swap(Chewbacca, NextPosition).
 
-valid_king_move(Board, Row, Column, R, C, _, inc) :- king_move(Row, Column, R, C), is_empty(Board, C, R).
-valid_king_move(Board, Row, Column, R, C, Turn, reset) :- king_move(Row, Column, R, C), get_piece(Board, R, C, piece(_, Other)), other_color(Turn, Other).
+% Rokeren is de max
+move_king(Position, NextPosition) :-  get_board(Position, Board),
+                                      get_turn(Position, white),
+                                      get_castling(Position, Castling),
+                                      check_castling(Castling, 'Q'),
+                                      put_king_for_castlecheck(Position, 5, 8, 4, 8, white),
+                                      put_piece(Board, Next, 5, 8, empty),
+                                      put_piece(Next, Nexter, 1, 8, empty),
+                                      put_piece(Nexter, Nexert, 3, 8, piece(king, white)),
+                                      put_piece(Nexert, Nextboard, 4, 8, piece(rook, white)),
+                                      increment_halfmove(Position, Poposition),
+                                      set_enpassant(Poposition, Positioner, ['-']),
+                                      set_board(Positioner, Nextboard, NewPosition),
+                                      disable_castling(NewPosition, NewerPosition),
+                                      swap(NewerPosition, NextPosition).
+
+move_king(Position, NextPosition) :-  get_board(Position, Board),
+                                      get_turn(Position, white),
+                                      get_castling(Position, Castling),
+                                      check_castling(Castling, 'K'),
+                                      put_king_for_castlecheck(Position, 5, 8, 6, 8, white),
+                                      put_piece(Board, Next, 5, 8, empty),
+                                      put_piece(Next, Nexter, 8, 8, empty),
+                                      put_piece(Nexter, Nexert, 7, 8, piece(king, white)),
+                                      put_piece(Nexert, Nextboard, 6, 8, piece(rook, white)),
+                                      increment_halfmove(Position, Poposition),
+                                      set_enpassant(Poposition, Positioner, ['-']),
+                                      set_board(Positioner, Nextboard, NewPosition),
+                                      disable_castling(NewPosition, NewerPosition),
+                                      swap(NewerPosition, NextPosition).
+
+move_king(Position, NextPosition) :-  get_board(Position, Board),
+                                      get_turn(Position, black),
+                                      get_castling(Position, Castling),
+                                      check_castling(Castling, 'q'),
+                                      put_king_for_castlecheck(Position, 5, 1, 4, 1, black),
+                                      put_piece(Board, Next, 5, 1, empty),
+                                      put_piece(Next, Nexter, 1, 1, empty),
+                                      put_piece(Nexter, Nexert, 3, 1, piece(king, black)),
+                                      put_piece(Nexert, Nextboard, 4, 1, piece(rook, black)),
+                                      increment_halfmove(Position, Poposition),
+                                      set_enpassant(Poposition, Positioner, ['-']),
+                                      set_board(Positioner, Nextboard, NewPosition),
+                                      disable_castling(NewPosition, NewerPosition),
+                                      swap(NewerPosition, NextPosition).
+
+move_king(Position, NextPosition) :-  get_board(Position, Board),
+                                      get_turn(Position, black),
+                                      get_castling(Position, Castling),
+                                      check_castling(Castling, 'K'),
+                                      put_king_for_castlecheck(Position, 5, 1, 6, 1, black),
+                                      put_piece(Board, Next, 5, 1, empty),
+                                      put_piece(Next, Nexter, 8, 1, empty),
+                                      put_piece(Nexter, Nexert, 7, 1, piece(king, black)),
+                                      put_piece(Nexert, Nextboard, 6, 1, piece(rook, black)),
+                                      increment_halfmove(Position, Poposition),
+                                      set_enpassant(Poposition, Positioner, ['-']),
+                                      set_board(Positioner, Nextboard, NewPosition),
+                                      disable_castling(NewPosition, NewerPosition),
+                                      swap(NewerPosition, NextPosition).
+
 
 king_move(Row, Column, R, Column) :- dif(Row, R, 1).
 king_move(Row, Column, Row, C) :- dif(Column, C, 1).
 king_move(Row, Column, R, C) :- dif(Column, C, 1), dif(Row, R, 1).
+
+put_king_for_castlecheck(Position, C1, R1, C2, R2, Turn) :-   get_board(Position, Board),
+                                                              is_empty(Board, C2, R2),
+                                                              put_piece(Board, Next, C1, R1, empty),
+                                                              put_piece(Next, NextBoard, C2, R2, piece(king, Turn)),
+                                                              set_board(Position, NextBoard, NextPosition),
+                                                              swap(NextPosition, Swap),
+                                                              \+(invalid_position(Swap)).
+
+% startposition_rook(Board, Turn, 1, 1, 'q') :- find_piece(Board, 1, 1, piece(rook, Turn)).
+% startposition_rook(Board, Turn, 8, 1, 'k') :- find_piece(Board, 8, 1, piece(rook, Turn)).
+% startposition_rook(Board, Turn, 8, 8, 'K') :- find_piece(Board, 8, 8, piece(rook, Turn)).
+% startposition_rook(Board, Turn, 1, 8, 'Q') :- find_piece(Board, 1, 8, piece(rook, Turn)).
 
 disable_castling([Board, white, Castling | Tail], [Board, white, C | Tail]) :- delete_castling('K', Castling, C1), delete_castling('Q', C1, C).
 disable_castling([Board, black, Castling | Tail], [Board, black, C | Tail]) :- delete_castling('k', Castling, C1), delete_castling('q', C1, C).
@@ -472,4 +563,11 @@ delete_castling(_, '-', '-') :- !.
 delete_castling(_, [], []) :- !.
 delete_castling(K, [K], '-') :- !.
 delete_castling(Term, [Term|Tail], Tail) :- !.
-delete_castling(Term, [Head|Tail], [Head|Result]) :- delete_castling(Term, Tail, Result).
+delete_castling(Term, [Head|Tail], [Head|Result]) :- delete_castling_char(Term, Tail, Result).
+delete_castling_char(_, [], []) :- !.
+delete_castling_char(K, [K], []) :- !.
+delete_castling_char(Term, [Term|Tail], Tail) :- !.
+delete_castling_char(Term, [Head|Tail], [Head|Result]) :- delete_castling_char(Term, Tail, Result).
+
+check_castling([A |_], A).
+check_castling([_|B], C) :- check_castling(B, C).

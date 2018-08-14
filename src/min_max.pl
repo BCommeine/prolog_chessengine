@@ -1,7 +1,7 @@
 :- module(min_max, [minimax/3]).
 :- use_module(chess, [move/2, value/2]).
 
-minimax(Pos, Move, Depth) :- minimax(Depth, Pos, _, Move).
+minimax(Pos, Next, Depth) :- minimax(Depth, Pos, _, Next).
 
 minimax(0, Position, Value, _) :-
       value(Position, Value).
