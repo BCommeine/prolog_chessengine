@@ -1,4 +1,4 @@
-:- module(chess, [get_turn/2, all_moves/2, move/2, value/2, wining_to_play/2, losing_to_move/2]).
+:- module(chess, [move/2, value/2]).
 :- use_module(parser, [parse/2,  dirk/1]).
 
 % Interface of minimax-module:
@@ -550,11 +550,6 @@ put_king_for_castlecheck(Position, C1, R1, C2, R2, Turn) :-   get_board(Position
                                                               set_board(Position, NextBoard, NextPosition),
                                                               swap(NextPosition, Swap),
                                                               \+(invalid_position(Swap)).
-
-% startposition_rook(Board, Turn, 1, 1, 'q') :- find_piece(Board, 1, 1, piece(rook, Turn)).
-% startposition_rook(Board, Turn, 8, 1, 'k') :- find_piece(Board, 8, 1, piece(rook, Turn)).
-% startposition_rook(Board, Turn, 8, 8, 'K') :- find_piece(Board, 8, 8, piece(rook, Turn)).
-% startposition_rook(Board, Turn, 1, 8, 'Q') :- find_piece(Board, 1, 8, piece(rook, Turn)).
 
 disable_castling([Board, white, Castling | Tail], [Board, white, C | Tail]) :- delete_castling('K', Castling, C1), delete_castling('Q', C1, C).
 disable_castling([Board, black, Castling | Tail], [Board, black, C | Tail]) :- delete_castling('k', Castling, C1), delete_castling('q', C1, C).

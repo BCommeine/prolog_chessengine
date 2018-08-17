@@ -3,7 +3,7 @@
 
 minimax(Pos, Next, Depth) :- minimax(Depth, Pos, _, Next).
 
-minimax(0, Position, Value, _) :-
+minimax(0, Position, Value, _) :- !,
       value(Position, Value).
 
 minimax(D, Position, Value, Move) :-
